@@ -4,6 +4,7 @@
     <ul>
       <li v-for="user in users" :key="user._id" class="user-card">
         <div class="user-info">
+          <img :src="user.imageUrl" alt="user image" v-if="user.imageUrl" />
           <p><strong>{{ user.name }}</strong></p>
           <p>Email: {{ user.email }}</p>
         </div>
@@ -26,10 +27,14 @@
           <label for="email">Email</label>
           <input v-model="selectedUser.email" id="email" type="email" required />
 
+          <label for="image">Profile Picture</label>
+          <input type="file" @change="handleFileChange" />
+
           <button type="submit">Update</button>
         </form>
       </div>
     </div>
+
     <!-- Add Modal-->
     <div v-if="showAddModal" class="modal">
       <div class="modal-content">
@@ -42,7 +47,10 @@
           <label for="email">Email</label>
           <input v-model="email" type="email" required />
 
-          <button type="submit">Update</button>
+          <label for="image">Profile Picture</label>
+          <input type="file" @change="handleFileChange" />
+
+          <button type="submit">Add</button>
         </form>
       </div>
     </div>
@@ -59,6 +67,7 @@ export default {
       showAddModal: false,
       name: '',
       email: '',
+      image: null, 
     };
   },
   methods: {
@@ -70,19 +79,31 @@ export default {
         })
         .catch(error => console.error('Error fetching users:', error));
     },
-    openAddPopUp(){
+    openAddPopUp() {
       this.showAddModal = true;
+      this.image = null; 
     },
-    closeAddPopUp(){
-     this.showAddModal = false; 
+    closeAddPopUp() {
+      this.showAddModal = false; 
     },
     openEditPopup(user) {
       this.selectedUser = { ...user }; 
       this.showEditModal = true;
+      this.image = null; 
     },
     closeEditPopup() {
       this.showEditModal = false;
       this.selectedUser = null;
+    },
+    handleFileChange(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.image = e.target.result; 
+        };
+        reader.readAsDataURL(file);
+      }
     },
     submitAdd() {
       fetch(`https://user-api-x2uk.onrender.com/post`, {
@@ -93,13 +114,14 @@ export default {
         body: JSON.stringify({
           name: this.name,
           email: this.email,
+          imageUrl: this.image, 
         }),
       })
-        
         .then(response => response.json())
-        .then(this.closeAddPopUp())
-        
-
+        .then(data => {
+          this.users.push(data); 
+          this.closeAddPopUp();
+        })
         .catch(error => console.error('Error adding user:', error));
     },
     submitEdit() {
@@ -111,11 +133,13 @@ export default {
         body: JSON.stringify({
           name: this.selectedUser.name,
           email: this.selectedUser.email,
+          imageUrl: this.image || this.selectedUser.imageUrl, 
         }),
       })
         .then(response => response.json())
-        .then(this.closeEditPopup())
-
+        .then(data => {
+          this.closeEditPopup();
+        })
         .catch(error => console.error('Error updating user:', error));
     },
     deleteUser(userId) {
@@ -133,6 +157,7 @@ export default {
   }
 };
 </script>
+
 
 <style scoped>
 .user-card {
